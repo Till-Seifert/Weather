@@ -11,8 +11,7 @@ import static java.time.DayOfWeek.FRIDAY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class CachingForecasterTest {
     @Test
@@ -28,4 +27,38 @@ public class CachingForecasterTest {
         //verify(delegate).forecastFor("Oxford", FRIDAY); // This is arguable
         assertThat(forecast, equalTo(expectedForecast));
     }
+
+    @Test
+    public void providesSameOutputIfCalledTwice(){
+        var delegate = mock(Forecaster.class);
+        Forecast expectedForecast = new Forecast(12, 24, "mild");
+        given(delegate.forecastFor("Oxford", FRIDAY)).willReturn(expectedForecast);
+
+        var underTest = new CachingForecaster(delegate);
+
+        var forecast = underTest.forecastFor("Oxford", FRIDAY);
+        var secondForecast = underTest.forecastFor("Oxford", FRIDAY);
+        verify(delegate, times(1)).forecastFor("Oxford", FRIDAY);
+
+        assertThat(forecast, equalTo(secondForecast));
+    }
+    @Test
+    public void providesDifferentOutputIfDifferentInput(){
+        var delegate = mock(Forecaster.class);
+        Forecast expectedForecast = new Forecast(12, 24, "mild");
+        given(delegate.forecastFor("Oxford", FRIDAY)).willReturn(expectedForecast);
+        Forecast expectedForecast2 = new Forecast(15, 20, "mild");
+        given(delegate.forecastFor("London", FRIDAY)).willReturn(expectedForecast2);
+
+        var underTest = new CachingForecaster(delegate);
+
+        var forecast = underTest.forecastFor("Oxford", FRIDAY);
+        var secondForecast = underTest.forecastFor("London", FRIDAY);
+        verify(delegate, times(1)).forecastFor("Oxford", FRIDAY);
+        verify(delegate, times(1)).forecastFor("London", FRIDAY);
+
+        assertThat(forecast, equalTo(expectedForecast));
+        assertThat(secondForecast, equalTo(expectedForecast2));
+    }
+
 }
